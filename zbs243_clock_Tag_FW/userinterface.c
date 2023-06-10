@@ -107,34 +107,35 @@ void afterFlashScreenSaver() {
 }
 
 
-#defince VERSION_FMT "zbs_clock %d.%d.%d%s"
+#define VERSION_FMT "zbs_clock %d.%d.%d%s"
+
 #if (SCREEN_WIDTH == 152)  // 1.54"
-#defince SPLASH_TITLE_X 5
-#defince SPLASH_TITLE_Y 55
-#defince SPLASH_MAC_X 5
-#defince SPLASH_MAC_Y 136
-#defince SPLASH_CAP_X 2
-#defince SPLASH_CAP_Y 104
-#defince SPLASH_VERSION_X 2
-#defince SPLASH_VERSION_Y 120
+#define SPLASH_TITLE_X 5
+#define SPLASH_TITLE_Y 55
+#define SPLASH_MAC_X 5
+#define SPLASH_MAC_Y 136
+#define SPLASH_CAP_X 2
+#define SPLASH_CAP_Y 104
+#define SPLASH_VERSION_X 2
+#define SPLASH_VERSION_Y 120
 #elif (SCREEN_WIDTH == 128)  // 2.9"
-#defince SPLASH_TITLE_X 0
-#defince SPLASH_TITLE_Y 295
-#defince SPLASH_MAC_X 105
-#defince SPLASH_MAC_Y 270
-#defince SPLASH_CAP_X 64
-#defince SPLASH_CAP_Y 295
-#defince SPLASH_VERSION_X 80
-#defince SPLASH_VERSION_Y 295
+#define SPLASH_TITLE_X 0
+#define SPLASH_TITLE_Y 295
+#define SPLASH_MAC_X 105
+#define SPLASH_MAC_Y 270
+#define SPLASH_CAP_X 64
+#define SPLASH_CAP_Y 295
+#define SPLASH_VERSION_X 80
+#define SPLASH_VERSION_Y 295
 #elif (SCREEN_WIDTH == 400)  // 4.2"
-#defince SPLASH_TITLE_X 3
-#defince SPLASH_TITLE_Y 3
-#defince SPLASH_MAC_X 3
-#defince SPLASH_MAC_Y 284
-#defince SPLASH_CAP_X 2
-#defince SPLASH_CAP_Y 252
-#defince SPLASH_VERSION_X 3
-#defince SPLASH_VERSION_Y 268
+#define SPLASH_TITLE_X 3
+#define SPLASH_TITLE_Y 3
+#define SPLASH_MAC_X 3
+#define SPLASH_MAC_Y 284
+#define SPLASH_CAP_X 2
+#define SPLASH_CAP_Y 252
+#define SPLASH_VERSION_X 3
+#define SPLASH_VERSION_Y 268
 #endif
 
 void showSplashScreen() {
@@ -142,46 +143,36 @@ void showSplashScreen() {
     clearScreen();
     setColorMode(EPD_MODE_NORMAL, EPD_MODE_INVERT);
 
-#if (SCREEN_WIDTH == 152)  // 1.54"
-    epdPrintBegin(5, 55, EPD_DIRECTION_X, EPD_SIZE_DOUBLE, EPD_COLOR_BLACK);
-    epdpr("Starting");
-    epdPrintEnd();
-
-    loadRawBitmap(oepli, 12, 12, EPD_COLOR_BLACK);
-    loadRawBitmap(cloud, 12, 0, EPD_COLOR_RED);
-
-    epdPrintBegin(5, 136, EPD_DIRECTION_X, EPD_SIZE_SINGLE, EPD_COLOR_RED);
-    epdpr("%02X%02X", mSelfMac[7], mSelfMac[6]);
-    epdpr("%02X%02X", mSelfMac[5], mSelfMac[4]);
-    epdpr("%02X%02X", mSelfMac[3], mSelfMac[2]);
-    epdpr("%02X%02X", mSelfMac[1], mSelfMac[0]);
-    epdPrintEnd();
-
-    epdPrintBegin(2, 104, EPD_DIRECTION_X, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
-    addCapabilities();
-    epdPrintEnd();
-
-    epdPrintBegin(2, 120, EPD_DIRECTION_X, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
-    epdpr(VERSION_FMT, fwVersion / 100, (fwVersion % 100) / 10, (fwVersion % 10), fwVersionSuffix);
-    epdPrintEnd();
-
-#endif
-
-#if (SCREEN_WIDTH == 128)  // 2.9"
-
-    epdPrintBegin(0, 295, EPD_DIRECTION_Y, EPD_SIZE_DOUBLE, EPD_COLOR_BLACK);
+    epdPrintBegin(SPLASH_TITLE_X, SPLASH_TITLE_Y, EPD_DIRECTION_Y, EPD_SIZE_DOUBLE, EPD_COLOR_BLACK);
     epdpr("Startgni");
+    switch (wakeUpReason) {
+    case WAKEUP_REASON_WDT_RESET: {
+        epdpr("(reset)");
+        break;
+    }
+    case WAKEUP_REASON_FIRSTBOOT: {
+        epdpr("(first)");
+        break;
+    }
+    case WAKEUP_REASON_TIMED: {
+        epdpr("(timed)");
+        break;
+    }
+        /* FIXME: all cases */
+    default:
+        break;
+    }
     epdPrintEnd();
 
-    epdPrintBegin(64, 295, EPD_DIRECTION_Y, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
+    epdPrintBegin(SPLASH_CAP_X, SPLASH_CAP_Y, EPD_DIRECTION_Y, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
     addCapabilities();
     epdPrintEnd();
 
-    epdPrintBegin(80, 295, EPD_DIRECTION_Y, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
+    epdPrintBegin(SPLASH_VERSION_X, SPLASH_VERSION_Y, EPD_DIRECTION_Y, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
     epdpr(VERSION_FMT, fwVersion / 100, (fwVersion % 100) / 10, (fwVersion % 10), fwVersionSuffix);
     epdPrintEnd();
 
-    epdPrintBegin(105, 270, EPD_DIRECTION_Y, EPD_SIZE_SINGLE, EPD_COLOR_RED);
+    epdPrintBegin(SPLASH_MAC_X, SPLASH_MAC_Y, EPD_DIRECTION_Y, EPD_SIZE_SINGLE, EPD_COLOR_RED);
     epdpr("MAC: %02X:%02X", mSelfMac[7], mSelfMac[6]);
     epdpr(":%02X:%02X", mSelfMac[5], mSelfMac[4]);
     epdpr(":%02X:%02X", mSelfMac[3], mSelfMac[2]);
@@ -193,48 +184,40 @@ void showSplashScreen() {
     spr(buffer + 4, "%02X%02X", mSelfMac[5], mSelfMac[4]);
     spr(buffer + 8, "%02X%02X", mSelfMac[3], mSelfMac[2]);
     spr(buffer + 12, "%02X%02X", mSelfMac[1], mSelfMac[0]);
-    printBarcode(buffer, 120, 284);
 
-    loadRawBitmap(oepli, 0, 12, EPD_COLOR_BLACK);
-    loadRawBitmap(cloud, 0, 0, EPD_COLOR_RED);
+#if (SCREEN_WIDTH == 152)  // 1.54"
+    // nothing
+#elif (SCREEN_WIDTH == 128)  // 2.9" 
+    printBarcode(buffer, 120, 284);
+#elif (SCREEN_WIDTH == 400)  // 4.2
+    printBarcode(buffer, 392, 264);
+    printBarcode(buffer, 384, 264);
+#endif
+
+    //loadRawBitmap(oepli, 0, 12, EPD_COLOR_BLACK);
+    //loadRawBitmap(cloud, 0, 0, EPD_COLOR_RED);
     // lutTest();
     //  drawLineVertical(EPD_COLOR_RED, 64, 10, 286);
     //  drawLineVertical(EPD_COLOR_BLACK, 65, 10, 286);
 
     // timerDelay(TIMER_TICKS_PER_SECOND * 4);
-#endif
-#if (SCREEN_WIDTH == 400)  // 4.2"
-    epdPrintBegin(3, 3, EPD_DIRECTION_X, EPD_SIZE_DOUBLE, EPD_COLOR_BLACK);
-    epdpr("Starting");
-    epdPrintEnd();
-
-    epdPrintBegin(2, 252, EPD_DIRECTION_X, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
-    addCapabilities();
-    epdPrintEnd();
-
-    epdPrintBegin(3, 268, EPD_DIRECTION_X, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
-    epdpr(VERSION_FMT, fwVersion / 100, (fwVersion % 100) / 10, (fwVersion % 10), fwVersionSuffix);
-    epdPrintEnd();
-    epdPrintBegin(3, 284, EPD_DIRECTION_X, EPD_SIZE_SINGLE, EPD_COLOR_RED);
-    epdpr("MAC: %02X:%02X", mSelfMac[7], mSelfMac[6]);
-    epdpr(":%02X:%02X", mSelfMac[5], mSelfMac[4]);
-    epdpr(":%02X:%02X", mSelfMac[3], mSelfMac[2]);
-    epdpr(":%02X:%02X", mSelfMac[1], mSelfMac[0]);
-    epdPrintEnd();
-
-    loadRawBitmap(oepli, 136, 22, EPD_COLOR_BLACK);
-    loadRawBitmap(cloud, 136, 10, EPD_COLOR_RED);
-
-    uint8_t __xdata buffer[17];
-    spr(buffer, "%02X%02X", mSelfMac[7], mSelfMac[6]);
-    spr(buffer + 4, "%02X%02X", mSelfMac[5], mSelfMac[4]);
-    spr(buffer + 8, "%02X%02X", mSelfMac[3], mSelfMac[2]);
-    spr(buffer + 12, "%02X%02X", mSelfMac[1], mSelfMac[0]);
-    printBarcode(buffer, 392, 264);
-    printBarcode(buffer, 384, 264);
-
-#endif
     drawWithSleep();
+}
+
+void showClockDigital(int8_t hours, int8_t minutes, int8_t seconds) {
+    selectLUT(EPD_LUT_NO_REPEATS); // what does this do?
+    //selectLUT(EPD_LUT_FAST_NO_REDS); // presumably this means we do not want to paint any red?
+    clearScreen();
+    setColorMode(EPD_MODE_NORMAL, EPD_MODE_INVERT);
+
+    // screen center is 148
+    uint16_t y = (SCREEN_HEIGHT / 2) + 25; // ca 2.5 * chard width (maybe 2.5 * 8 pixels?)
+    epdPrintBegin(48, y, EPD_DIRECTION_Y, EPD_SIZE_DOUBLE, EPD_COLOR_BLACK);
+    epdpr("%02d:%02d", hours, minutes);
+    epdPrintEnd();
+    draw();
+    //drawNoWait(); // or with wait?
+    //drawWithSleep(); // what does this exactly mean?
 }
 
 void showApplyUpdate() {
