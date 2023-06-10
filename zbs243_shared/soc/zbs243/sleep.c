@@ -13,8 +13,6 @@ void sleepForMsec(uint32_t length)
 	RADIO_IRQ4_pending = 0;
 	UNK_C1 &=~ 0x81;
 	TCON &=~ 0x20;
-	cfgPg = CFGPAGE;
-	CFGPAGE = 4;
 	RADIO_command = RADIO_CMD_UNK_2;
 	RADIO_command = RADIO_CMD_UNK_3;
 
@@ -51,9 +49,7 @@ void sleepForMsec(uint32_t length)
 	__asm__("nop\nnop\n");
 	RADIO_RadioPowerCtl = 0x44;
 	__asm__("nop\nnop\n");
-	
-	CFGPAGE = cfgPg;
-	
+
 	//make sure time does not run backwards
 	TL0 = 0x0;
 	TH0 = 0xFF;
