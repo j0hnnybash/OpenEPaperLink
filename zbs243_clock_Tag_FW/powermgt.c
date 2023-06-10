@@ -232,11 +232,8 @@ void powerDown(const uint8_t parts) {
         RADIO_IRQ4_pending = 0;
         UNK_C1 &= ~0x81;
         TCON &= ~0x20;
-        uint8_t __xdata cfgPg = CFGPAGE;
-        CFGPAGE = 4; /* FIXME: this supposedly only swaps the SFR, RADIO_command is in MMIO so WTF?! */
         RADIO_command = RADIO_CMD_UNK_2;
         RADIO_command = RADIO_CMD_UNK_3;
-        CFGPAGE = cfgPg;
     }
     if (parts & INIT_EEPROM) {
         eepromDeepPowerDown();
