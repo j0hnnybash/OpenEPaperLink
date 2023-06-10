@@ -15,8 +15,8 @@ void sleepForMsec(uint32_t length)
 	TCON &=~ 0x20;
 	cfgPg = CFGPAGE;
 	CFGPAGE = 4;
-	RADIO_command = 0xCA;
-	RADIO_command = 0xC5;
+	RADIO_command = RADIO_CMD_UNK_2;
+	RADIO_command = RADIO_CMD_UNK_3;
 
 	if (length <= 0x00008000ul) {
 		

@@ -321,9 +321,9 @@ void radioInit(void) {
     RADIO_calibration_71 = 0x40;
 
     RADIO_unk_A6 = 0x00;
-    RADIO_command = 0xC8;
-    RADIO_command = 0xC7;
-    RADIO_command = 0xC6;
+    RADIO_command = RADIO_CMD_UNK_1;
+    RADIO_command = RADIO_CMD_FLUSH_TX_FIFO;
+    RADIO_command = RADIO_CMD_FLUSH_RX_FIFO;
     RADIO_unk_AF = 0x60;  // int enable (we need 0x60)
 
     RADIO_unk_AF |= 0x10;

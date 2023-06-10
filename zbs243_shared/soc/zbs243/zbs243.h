@@ -284,6 +284,8 @@ static __xdata __at (0xdffd) unsigned char RADIO_perChannelSetting1;	//relevant 
 #define RADIO_CMD_FLUSH_RX_FIFO		0xc6
 #define RADIO_CMD_FLUSH_TX_FIFO		0xc7
 #define RADIO_CMD_LOAD_TX_FIFO		0xcb
-
+#define RADIO_CMD_UNK_1		0xc8
+#define RADIO_CMD_UNK_2		0xca
+#define RADIO_CMD_UNK_3		0xc5
 
 #endif
