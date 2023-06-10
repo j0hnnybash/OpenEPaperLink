@@ -26,6 +26,36 @@
 // #define DEBUG_MODE
 
 
+void test_sleep_power_consumption() {
+
+    wdt30s();
+    doSleep(15000UL); // with CFGPG save/restore 0.00 mA sleep; w/o save/restore 0.00mA
+    powerUp(INIT_EPD); showClockDigital(42, 1, 0); powerDown(INIT_EPD);
+
+    wdt30s();
+    sleepForMsec(15000UL); // with CFGPG save/restore 0.00 mA sleep; w/o save/restore 0.00mA
+    powerUp(INIT_EPD); showClockDigital(42, 2, 0); powerDown(INIT_EPD);
+
+    wdt60s();
+    doSleep(30000UL); // with CFGPG save/restore 0.00 mA; w/o save/restore 0.00mA
+    powerUp(INIT_EPD); showClockDigital(42, 3, 0); powerDown(INIT_EPD);
+
+    wdt60s();
+    sleepForMsec(30000UL); // with CFGPG save/restore 0.00 mA; w/o save/restore 0.00mA
+    powerUp(INIT_EPD); showClockDigital(42, 4, 0); powerDown(INIT_EPD);
+
+    wdt120s();
+    doSleep(60e3); // with CFGPG save/restore 0.00 mA
+    powerUp(INIT_EPD); showClockDigital(42, 5, 0); powerDown(INIT_EPD);
+
+    wdt120s();
+    sleepForMsec(60e3); // with CFGPG save/restore 0.00 mA
+    powerUp(INIT_EPD); showClockDigital(42, 6, 0); powerDown(INIT_EPD);
+
+    // 0.00 mA in other sleep
+
+}
+
 void main() {
     // displayLoop();  // remove me
     setupPortsInitial();
@@ -134,6 +164,7 @@ void main() {
     int8_t hours = 0;
     int8_t minutes = 0;
 
+    test_sleep_power_consumption();
 
     // sleepFotMsec()?
     //doSleep(5000UL); ?
