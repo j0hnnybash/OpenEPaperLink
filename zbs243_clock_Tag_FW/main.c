@@ -272,7 +272,8 @@ void main() {
         showClockDigital(hours, minutes, 0);
         powerDown(INIT_EPD);
         wdt120s();
-        sleepForMsec(60e3);
+        //sleepForMsec(60e3);
+        timed_sleep1(60e3);
         minutes += 1;
         if (minutes > 59) {
             minutes -= 60;
