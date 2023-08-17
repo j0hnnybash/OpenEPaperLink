@@ -250,19 +250,46 @@ void main() {
     }
 #endif
 
+
+
     powerUp(INIT_EPD);
     wdt60s();
     showClockDigital(42, 42, 0);
-    //powerDown(INIT_EPD); // if we don't power down the EPD it will not display anything next time around.
+    powerDown(INIT_EPD); // if we don't power down the EPD it will not display anything next time around.
     //doSleep(5000UL);
-    wdt10s();
+    //wdt30s();
     //powerUp(INIT_EPD); // doesn't seem to be idempotent, requires preceeding powerDown otherwise nothing will be drawn.
-    showClockDigital(41, 41, 0);
-    powerDown(INIT_EPD | INIT_UART);
+
+    // power up GPIO?, not really configures GPIO so EPD can be addressed
+    //epdConfigGPIO(true);
+
+
+    // Pin P1.0 is "testpoint"
+    //setup_gpio_1(0, GPIO_OUT, GPIO_PULLUP_OFF);
+    P1DIR &= ~((1 << 0));
+    P1_0 = 0;
+    //timed_sleep1(500); // on
+    timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    P1_0 = 1;
+    //timed_sleep1(500); // off
+    timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    P1_0 = 0;
+    //timed_sleep1(500); // on, crash
+    timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    P1_0 = 1;
+    P1DIR |= (1 << 0);
+    //timed_sleep1(500);
+    timerDelay(TIMER_TICKS_PER_SECOND / 2);
+
+    // power down GPIO?
+    //epdConfigGPIO(false);
+
+    //powerUp(INIT_EPD);
+    //powerDown(INIT_EPD | INIT_UART);
+    powerDown(INIT_UART);
+    
     int8_t hours = 0;
     int8_t minutes = 0;
-
-    test_sleep_power_consumption();
 
     // sleepFotMsec()?
     //doSleep(5000UL); ?
