@@ -326,6 +326,8 @@ void epdConfigGPIO(bool setup) {
     }
     epdGPIOActive = setup;
 }
+
+// JBE: power down E-paper
 void epdEnterSleep() {
     shortCommand1(CMD_VCOM_INTERVAL, 0x17);
     shortCommand1(CMD_VCOM_DC_SETTING, 0x00);
