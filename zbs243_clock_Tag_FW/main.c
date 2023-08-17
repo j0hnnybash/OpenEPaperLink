@@ -70,6 +70,46 @@ void test_sleep_power_consumption() {
 
 }
 
+
+#define GPIO_IN 1
+#define GPIO_OUT 0
+#define GPIO_PULLUP_ON 1
+#define GPIO_PULLUP_OFF 0
+// TODO: pin change interrupts
+
+
+/* static void clr_bit(uint8_t * p, int n) { */
+/*     *p &= ~(1U << n); */
+/* } */
+/* static void set_bit(uint8_t * p, int n) { */
+/*     *p |= (1U << n); */
+/* } */
+#define clr_bit(p,n) ((p) &= ~(1U << (n)))
+#define set_bit(p,n) ((p) |= (1U << (n)))
+
+static void setup_gpio_1(int pin, int dir, int pullup) {
+    // 1 - func, 0 - gpio
+    clr_bit(P1FUNC, pin);
+    // 1 - in, 0 - out
+    if (dir == GPIO_IN) {
+        set_bit(P1DIR, pin);
+    } else {
+        clr_bit(P1DIR, pin);
+    }
+    // 1 - pull up enable, 0 - disable
+    if (pullup == GPIO_PULLUP_ON) {
+        set_bit(P1PULL, pin);
+    } else {
+        clr_bit(P1PULL, pin);
+    }
+    /* // ? */
+    /* P1LVLSEL |= (1 << 0); */
+    /* // change lvl interrupt enable */
+    /* P1INTEN = (1 << 0); */
+    /* // pin changed status, 1=changed, (clear _before_ enabling interrupt?!) */
+    /* P1CHSTA &= ~(1 << 0); */
+}
+
 void main() {
     // displayLoop();  // remove me
     setupPortsInitial();
