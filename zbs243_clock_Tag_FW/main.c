@@ -25,6 +25,20 @@
 
 // #define DEBUG_MODE
 
+//source https://dmitry.gr/?r=05.Projects&proj=30.%20Reverse%20Engineering%20an%20Unknown%20Microcontroller#_TOC_c97c7180a59c5801fd75894c0ce992ef
+// Timing Notes:
+// 8051 timers tick with 1/12th of 16MHz XTAL (~1.3MHz)
+// 8052 Timer2 apparently is not implemented by the core :/
+// Note: timer 1 is always available it is not used as the UART clk (as it is in OG 8051)
+// WDT counts up at ~62kHz
+// SPI CLK rates: 500KHz, 1MHz, 2MHz, 4MHz controlled by "SPICFG"
+// (low power) Sleep timer: 24bit, can be set to tick at 1Hz or 32kHz (!?) -> 30ms to 194days
+// Q: Why drawWithSleep?
+// A: Eink drawing takes quite long, the CPU can spend this time sleeping!
+
+// note: reboot issues -> short battery terminals before battery insertion to discharge input caps.
+
+// Radio commands are completely undocumented?!
 
 void test_sleep_power_consumption() {
 
