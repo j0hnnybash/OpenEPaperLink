@@ -32,7 +32,9 @@ __sfr __at (0xb5) PCL;
 __sfr __at (0xb6) PERFMON4;
 
 
-
+//__sbit: only 8byte aligned addresses are bit addressable
+// -> 0x81 ~ 0x80.1
+// -> 0x89 ~ 0x88.1
 __sbit __at (0x80) P0_0;
 __sbit __at (0x81) P0_1;
 __sbit __at (0x82) P0_2;
@@ -63,7 +65,7 @@ __sbit __at (0xA9) IEN_TMR0;
 __sbit __at (0xAB) IEN_TMR1;
 __sbit __at (0xAC) IEN_RF1;	//enable for RF interrupt #1 (irq #2)
 __sbit __at (0xAD) IEN_RF2;	//enable for RF interrupt #2 (irq #5)
-__sbit __at (0xAF) IEN_EA;
+__sbit __at (0xAF) IEN_EA;      //global interrupt enable
 
 //gpio configs (all in cfg page 0 only)
 __sfr __at (0x80) P0;		//RO for input pins, WO for output pins (written state not read back)
@@ -144,6 +146,15 @@ __sfr __at (0x8C) TH0;
 __sfr __at (0x8D) TH1;
 __sfr16 __at (0x8C8A) T0;
 __sfr16 __at (0x8D8B) T1;	//used by timer code for storage
+#define TCON_TF1_MASK 0x80
+#define TCON_TR1_MASK 0x40 // start/stop
+#define TCON_TF0_MASK 0x20
+#define TCON_TR0_MASK 0x10 // start/stop
+#define TCON_IE1_MASK 0x08
+#define TCON_IT1_MASK 0x04
+#define TCON_IE0_MASK 0x02
+#define TCON_IT0_MASK 0x01
+
 
 //flash writing (must be done with CFGPAGE == 4). each page is 0x400 bytes
 __sfr __at (0xD8) FPGNO;	//page number (0x00..0x3f for main flash, 0x80 for info block)
@@ -276,8 +287,8 @@ static __xdata __at (0xdfda) unsigned char RADIO_SleepTimerMid;
 static __xdata __at (0xdfdb) unsigned char RADIO_SleepTimerLo;
 static __xdata __at (0xdfe2) unsigned char RADIO_unk_E2;
 static __xdata __at (0xdff0) unsigned char RADIO_unk_F0;
-static __xdata __at (0xdff3) unsigned char RADIO_SleepTimerSettings;	//0x16 for one second tick, 0x56 for 1/32k second tick
-static __xdata __at (0xdff4) unsigned char RADIO_RadioPowerCtl;
+static __xdata __at (0xdff3) unsigned char RADIO_SleepTimerSettings;	//0x16 for one second tick, 0x56 for 1/32k second tick, what is 0x80 for?
+static __xdata __at (0xdff4) unsigned char RADIO_RadioPowerCtl; // Values 0x4 (init?), 0x44 (sleep?)
 static __xdata __at (0xdffd) unsigned char RADIO_perChannelSetting1;	//relevant fo rRX
 
 #define RADIO_CMD_RECEIVE			0xc2	//tx always goes to RX anyways
