@@ -146,22 +146,29 @@ void showSplashScreen() {
     epdPrintBegin(SPLASH_TITLE_X, SPLASH_TITLE_Y, EPD_DIRECTION_Y, EPD_SIZE_DOUBLE, EPD_COLOR_BLACK);
     epdpr("Startgni");
     switch (wakeUpReason) {
-    case WAKEUP_REASON_WDT_RESET: {
-        epdpr("(reset)");
-        break;
-    }
-    case WAKEUP_REASON_FIRSTBOOT: {
-        epdpr("(first)");
-        break;
-    }
-    case WAKEUP_REASON_TIMED: {
+    case WAKEUP_REASON_TIMED:
         epdpr("(timed)");
         break;
-    }
-        /* FIXME: all cases */
+    case WAKEUP_REASON_GPIO:
+        epdpr("(gpio)");
+        break;
+    case WAKEUP_REASON_NFC:
+        epdpr("(nfc)");
+        break;
+    case WAKEUP_REASON_FIRSTBOOT:
+        epdpr("(first)");
+        break;
+    case WAKEUP_REASON_NETWORK_SCAN:
+        epdpr("(scan)");
+        break;
+    case WAKEUP_REASON_WDT_RESET:
+        epdpr("(reset)");
+        break;
     default:
+        epdpr("(unk)");
         break;
     }
+    epdpr("0x%x", RESET);
     epdPrintEnd();
 
     epdPrintBegin(SPLASH_CAP_X, SPLASH_CAP_Y, EPD_DIRECTION_Y, EPD_SIZE_SINGLE, EPD_COLOR_BLACK);
