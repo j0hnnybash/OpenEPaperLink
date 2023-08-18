@@ -70,11 +70,15 @@ void test_sleep_power_consumption() {
     // 0.00 mA in other sleep
 
 }
-
-// duration is in ms
+void timed_sleep1(uint32_t duration);
+void timed_sleep1_irqsave(uint32_t duration) {
+    __bit irqEn = IEN_EA; // save previous IRQ state
+    timed_sleep1(duration);
+    IEN_EA = irqEn;
+}
+// duration is in ms; disables interrupts
 void timed_sleep1(uint32_t duration)
 {
-	__bit irqEn = IEN_EA; // save previous IRQ state
 	uint8_t prescaler;
 	IEN_EA = 0; // IRQs off
 
@@ -131,8 +135,6 @@ void timed_sleep1(uint32_t duration)
 	//UNK_C1 |= 0x81;
 	//TCON |= TCON_TF0_MASK; /* FIXME: why would we write to it? isnt this a read only value? also why dont we use bit addressing? this is cleared by some ISRs so maybe we want to detect that..?*/
         // maybe Timer 0 does not signal overflow if IRQs are off, and this is needed to emulate the behavior of Timer 0 overflowing
-
-	IEN_EA = irqEn;
 }
 
 #define GPIO_IN 1
@@ -271,19 +273,19 @@ void main() {
     P1DIR &= ~BIT(0);
     P1PULL &= ~BIT(0);
     P1_0 = 1;
-    //timed_sleep1(500); // on // ~maybe~ crash already here
+    //timed_sleep1_irqsave(500); // on // ~maybe~ crash already here
     timerDelay(TIMER_TICKS_PER_SECOND / 2);
     P1_0 = 0;
-    timed_sleep1(500); // off
+    timed_sleep1_irqsave(500); // off
     //timerDelay(TIMER_TICKS_PER_SECOND / 2);
     P1_0 = 1;
-    timed_sleep1(500); // on,  crash on next sleep?
+    timed_sleep1_irqsave(500); // on,  crash on next sleep?
     //timerDelay(TIMER_TICKS_PER_SECOND / 2);
     P1_0 = 0;
-    timed_sleep1(500); // no crash here as well (unless previous blink is also sleep)
+    timed_sleep1_irqsave(500); // no crash here as well (unless previous blink is also sleep)
     P1PULL |= BIT(0); // restore pullup
     P1DIR |= BIT(0);
-    //timed_sleep1(500); // no crash here
+    //timed_sleep1_irqsave(500); // no crash here
     //timerDelay(TIMER_TICKS_PER_SECOND / 2);
 
     // power down GPIO?
@@ -305,7 +307,7 @@ void main() {
         powerDown(INIT_EPD);
         wdt120s();
         //sleepForMsec(60e3);
-        timed_sleep1(60e3);
+        timed_sleep1_irqsave(60e3);
         minutes += 1;
         if (minutes > 59) {
             minutes -= 60;
