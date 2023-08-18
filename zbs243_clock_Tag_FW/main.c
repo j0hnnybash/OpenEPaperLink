@@ -22,6 +22,7 @@
 #include "wdt.h"
 #include "sleep.h"
 
+#define BIT(idx) (1U << (idx))
 
 // #define DEBUG_MODE
 
@@ -70,14 +71,15 @@ void test_sleep_power_consumption() {
 
 }
 
-void timed_sleep1(uint32_t length)
+// duration is in ms
+void timed_sleep1(uint32_t duration)
 {
 	__bit irqEn = IEN_EA; // save previous IRQ state
 	uint8_t prescaler;
 	IEN_EA = 0; // IRQs off
-	
-	if (!length)
-		length = 0xfffffffful;
+
+	if (!duration)
+		duration = 0xfffffffful;
 
         // is this a cheap variant of 	powerDown(INIT_RADIO); ? it matches except for the radioRxEnable(false,true);
         // since IRQs are off this is 100% equivalent... except a few instructions shorter...
@@ -89,25 +91,25 @@ void timed_sleep1(uint32_t length)
         //powerDown(INIT_RADIO); // this would be slower, but equivalent and actually less code...
 
         // sleep timer seems to count down?
-	if (length <= 0x00008000ul) {
-		length <<= 5;
+	if (duration <= 0x00008000ul) {
+		duration <<= 5;
 		prescaler = 0x56;		//0x56 = one tick is 1/32k of sec
 	}
 	else {
-		if (length != 0xfffffffful)
-			length += 500;
-		length /= 1000;
+		if (duration != 0xfffffffful)
+			duration += 500;
+		duration /= 1000;
 		prescaler = 0x16;		//0x16 = one tick is 1 second
 	}
-	if (length > 0x000fffff) {
+	if (duration > 0x000fffff) {
 		RADIO_SleepTimerLo = 0xff;
 		RADIO_SleepTimerMid = 0xff;
 		RADIO_SleepTimerHi = 0x0f;
 	}
 	else {
-		RADIO_SleepTimerLo = length;
-		RADIO_SleepTimerMid = length >> 8;
-		RADIO_SleepTimerHi = ((uint8_t)(length >> 16)) & 0x0f;
+		RADIO_SleepTimerLo = duration;
+		RADIO_SleepTimerMid = duration >> 8;
+		RADIO_SleepTimerHi = ((uint8_t)(duration >> 16)) & 0x0f;
 	}
 
 	__asm__("nop");
@@ -266,20 +268,23 @@ void main() {
 
     // Pin P1.0 is "testpoint"
     //setup_gpio_1(0, GPIO_OUT, GPIO_PULLUP_OFF);
-    P1DIR &= ~((1 << 0));
-    P1_0 = 0;
-    //timed_sleep1(500); // on
-    timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    P1DIR &= ~BIT(0);
+    P1PULL &= ~BIT(0);
     P1_0 = 1;
-    //timed_sleep1(500); // off
+    //timed_sleep1(500); // on // ~maybe~ crash already here
     timerDelay(TIMER_TICKS_PER_SECOND / 2);
     P1_0 = 0;
-    //timed_sleep1(500); // on, crash
-    timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    timed_sleep1(500); // off
+    //timerDelay(TIMER_TICKS_PER_SECOND / 2);
     P1_0 = 1;
-    P1DIR |= (1 << 0);
-    //timed_sleep1(500);
-    timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    timed_sleep1(500); // on,  crash on next sleep?
+    //timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    P1_0 = 0;
+    timed_sleep1(500); // no crash here as well (unless previous blink is also sleep)
+    P1PULL |= BIT(0); // restore pullup
+    P1DIR |= BIT(0);
+    //timed_sleep1(500); // no crash here
+    //timerDelay(TIMER_TICKS_PER_SECOND / 2);
 
     // power down GPIO?
     //epdConfigGPIO(false);
