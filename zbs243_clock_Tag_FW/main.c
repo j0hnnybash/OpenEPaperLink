@@ -89,7 +89,7 @@ void timed_sleep1(uint32_t duration)
         // since IRQs are off this is 100% equivalent... except a few instructions shorter...
 	RADIO_IRQ4_pending = 0;
 	UNK_C1 &=~ 0x81;
-	TCON &=~ 0x20; // clear T= overflow bit
+	TCON &=~ 0x20; // clear T= overflow bit, necessary? or does the HW do this for us?
 	RADIO_command = RADIO_CMD_UNK_2;
 	RADIO_command = RADIO_CMD_UNK_3;
         //powerDown(INIT_RADIO); // this would be slower, but equivalent and actually less code...
@@ -124,16 +124,18 @@ void timed_sleep1(uint32_t duration)
 	RADIO_RadioPowerCtl = 0x44;
 	__asm__("nop\nnop\n");
 
-        // Why do we need this busy sleep here?!
+        // Why do we need this busy sleep here?!, apparently to avoid rebooting if we sleep to fast again
 	//make sure time does not run backwards
-	/* TL0 = 0x0; */
-	/* TH0 = 0xFF; */
-	/* while (TH0 == 0xFF); // so this busily waits for 8bits of count on timer 0?! */
+	TL0 = 0x0;
+	TH0 = 0xFF;
+	while (TH0 == 0xFF); // so this busily waits for 8bits of count on timer 0?!
 
         // this is the reverse of the clearing of these flags above, identical to the powerDown(INIT_RADIO)?
         // but it is not equivalent to powerUp(INIT_RADIO)
 	//UNK_C1 |= 0x81;
 	//TCON |= TCON_TF0_MASK; /* FIXME: why would we write to it? isnt this a read only value? also why dont we use bit addressing? this is cleared by some ISRs so maybe we want to detect that..?*/
+        // would only be cleared if, interrupts were not disabled
+
         // maybe Timer 0 does not signal overflow if IRQs are off, and this is needed to emulate the behavior of Timer 0 overflowing
 }
 
@@ -273,20 +275,23 @@ void main() {
     P1DIR &= ~BIT(0);
     P1PULL &= ~BIT(0);
     P1_0 = 1;
+    __bit irqEn = IEN_EA; // save previous IRQ state
     //timed_sleep1_irqsave(500); // on // ~maybe~ crash already here
-    timerDelay(TIMER_TICKS_PER_SECOND / 2);
-    P1_0 = 0;
-    timed_sleep1_irqsave(500); // off
     //timerDelay(TIMER_TICKS_PER_SECOND / 2);
-    P1_0 = 1;
-    timed_sleep1_irqsave(500); // on,  crash on next sleep?
+    timed_sleep1(500);
+    P1_0 = 0;
+    timed_sleep1(500); // off
+    //timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    //P1_0 = 1;
+    timed_sleep1(500); // on,  crash on next sleep?
     //timerDelay(TIMER_TICKS_PER_SECOND / 2);
     P1_0 = 0;
-    timed_sleep1_irqsave(500); // no crash here as well (unless previous blink is also sleep)
+    timed_sleep1(500); // no crash here as well (unless previous blink is also sleep)
     P1PULL |= BIT(0); // restore pullup
     P1DIR |= BIT(0);
     //timed_sleep1_irqsave(500); // no crash here
     //timerDelay(TIMER_TICKS_PER_SECOND / 2);
+    IEN_EA = irqEn; // restore IRQ
 
     // power down GPIO?
     //epdConfigGPIO(false);
