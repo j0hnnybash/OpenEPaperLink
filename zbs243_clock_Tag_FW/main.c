@@ -178,6 +178,9 @@ static void setup_gpio_1(int pin, int dir, int pullup) {
     /* P1CHSTA &= ~(1 << 0); */
 }
 
+void watch_loop_do(void);
+//void watch_loop_do(uint32_t);
+
 void main() {
     // displayLoop();  // remove me
     setupPortsInitial();
@@ -306,17 +309,61 @@ void main() {
     // sleepFotMsec()?
     //doSleep(5000UL); ?
     // Stopwatch
+    uint32_t loop_count = 0;
     while (1) {
-        powerUp(INIT_EPD);
-        showClockDigital(hours, minutes, 0);
-        powerDown(INIT_EPD);
-        wdt120s();
-        //sleepForMsec(60e3);
-        timed_sleep1_irqsave(60e3);
-        minutes += 1;
-        if (minutes > 59) {
-            minutes -= 60;
-            hours += 1;
-        }
+        watch_loop_do(loop_count);
+        ++loop_count;
     }
 }
+
+struct walltime {
+    int8_t hours, minutes, seconds;
+};
+
+#define WALLTIME_MS_PER_HOUR 3600000
+#define WALLTIME_MS_PER_MINUTE 60000
+#define WALLTIME_MS_PER_SECOND 1000
+// SDCC does not support aggrgate return types :(
+void to_walltime(uint32_t ms, struct walltime *out_t) {
+    // FIXME: this would be the perfect application for divrem/divmod
+    out_t->hours = ms / WALLTIME_MS_PER_HOUR;
+    out_t->minutes = (ms % WALLTIME_MS_PER_HOUR) / WALLTIME_MS_PER_MINUTE;
+    out_t->seconds = ((ms % WALLTIME_MS_PER_HOUR) % WALLTIME_MS_PER_MINUTE) / WALLTIME_MS_PER_SECOND;
+}
+#undef WALLTIME_MS_PER_HOUR
+#undef WALLTIME_MS_PER_MINUTE
+#undef WALLTIME_MS_PER_SECOND
+
+// WIP, might not be precise yet..
+void sleep_precise(uint32_t duration_ms) {
+    timed_sleep1_irqsave(duration_ms);
+}
+
+// Assumptions:
+// Timer0 isn't reset by sleep (current sleep implementation does not satisfy this?).
+// Timer0 overflow counter will never overflow (it is good for ~2412 days) (of continuous (non-sleep) device operation, which exceeds the battery life).
+//
+// Plan:
+//  two independent counts: sleep interval counts, wake time counts
+//  calculate current elapsed time by adding both counts
+// Next step: fixed sleep interval won't do, as the clock will start to tick over in the middle of a minute
+void watch_loop_do(uint32_t loop_count) {
+    const uint32_t interval_ms = 60e3;
+    //static uint32_t loop_count = 0; // for some reason using this static variable we only get a single increment, but no more!
+    wdt120s();
+
+    // overflows after ~11years
+    uint32_t time_ms;
+    uint32_t timer_counts = timerGet();
+    // ticks per ms: 
+    time_ms = interval_ms * loop_count + timer_counts / TIMER_TICKS_PER_MS /* imprecise...*/;
+    struct walltime t;
+    to_walltime(time_ms, &t);
+    powerUp(INIT_EPD);
+    showClockDigital(t.hours, t.minutes, t.seconds);
+    powerDown(INIT_EPD);
+    sleep_precise(interval_ms); /* might need to optimize going too sleep just after the timer overflows, since interrupts are disabled we might miss an overflow if we disable interrupts just before we would have overflown. */
+    //++loop_count;
+}
+
+// QS: can we sleep without disabling (all) interrupts?, would the interrupts wake us? (this would imply that the counter keeps running during sleep)

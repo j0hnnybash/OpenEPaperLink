@@ -220,7 +220,7 @@ void showClockDigital(int8_t hours, int8_t minutes, int8_t seconds) {
     // screen center is 148
     uint16_t y = (SCREEN_HEIGHT / 2) + 25; // ca 2.5 * chard width (maybe 2.5 * 8 pixels?)
     epdPrintBegin(48, y, EPD_DIRECTION_Y, EPD_SIZE_DOUBLE, EPD_COLOR_BLACK);
-    epdpr("%02d:%02d", hours, minutes);
+    epdpr("%02d:%02d:%02d", hours, minutes,seconds);
     epdPrintEnd();
     draw();
     //drawNoWait(); // or with wait?
