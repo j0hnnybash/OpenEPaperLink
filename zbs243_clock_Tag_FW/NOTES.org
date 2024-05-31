@@ -1,13 +1,19 @@
 * The intel(R) 8051 ISA (not reverse engineered)
  - DATA RAM:
    - 128B on chip: addresses 00H-7fH
-     - SFRs mapped into RAM at 80H-ffH
+     - SFRs (special function registers) mapped into RAM at 80H-ffH
    - Stack is 128B deep (ISA allows upto 256B), SP on reset is 07H
      - stack cannot be relocated to external RAM!
    - upto 64k RAM total
 * Plan:
  - use T0 timer with an interrupt to correctly count overflows
    - do this to keep time while epaper is updating
+ - phy/MAC should have much more advanced timer
+   - key issue synchronization between MAC reset timer and timer T0
+   - IIUC MAC timer resets/wakes up SoC on underflow and stops
+     running, on the TI chip it is ensured that the ISA timer is
+     synchronous with the MAC timer and resumes at the exact clock
+     flank where the MAC timer underflows.
 
 * Issues
 ** timed sleep  with GPIO blink causes reboot (sometimes?)
