@@ -1,0 +1,54 @@
+* Flashing the flasher
+1) use ~pio run -e nanoatmega328 --target upload~
+2) remember to disconnect the 3.3V Serial interface
+* PINOUT
+#+begin_example
+        
+        
+        
+        
+        
+                +------------------+
+                |                  |
+      1|3.3V    |                  |   GND|7
+                |                  |        
+                |                  |          
+  D11 2|MOSI    |       D13        |   RST|8  D7
+                |       CLK        |              
+                |        5         |              
+  D10   3|SS    |                  |   RX|9   D
+                |                  |              
+                |        6         |              
+   D9   4|TX    |      MISO        |   TP     (D6)
+                |       D12        |            
+                +------------------+     
+                                         
+                                         
+                                         
+
+
+#+end_example
+Important run arduino at 3.3V!
+
+| Name | PAD | JIG | Arduino       |
+|------+-----+-----+---------------|
+| MOSI |   2 |   1 | D11           |
+| MISO |   6 |   2 | D12           |
+| SS   |   3 |   3 | D10           |
+| CLK  |   5 |   4 | D13           |
+| RX   |   9 |   5 | (D8)          |
+| TX   |   4 |   6 | (D9)          |
+| RST  |   8 |   7 | D7            |
+| TP   |  10 |   8 |               |
+| GND  |   7 |   9 | GND           |
+| 3.3V |   1 |  10 | 3V/5V(underV) |
+
+
+* Flashing (not first flash)
+#+begin_src bash
+    make
+    ../../ZBS_Flasher/zbs_flasher.py -p /dev/ttyUSB0 write ./main.bin
+#+end_src
+
+
+
