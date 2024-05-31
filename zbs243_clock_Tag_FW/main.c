@@ -134,7 +134,8 @@ void timed_sleep1(uint32_t duration)
         // but it is not equivalent to powerUp(INIT_RADIO)
 	//UNK_C1 |= 0x81;
 	//TCON |= TCON_TF0_MASK; /* FIXME: why would we write to it? isnt this a read only value? also why dont we use bit addressing? this is cleared by some ISRs so maybe we want to detect that..?*/
-        // would only be cleared if, interrupts were not disabled
+        // we write to it s.t. the timer0 interrupt fires immediately after enabling interrupts?
+        // would only be cleared if, interrupts were not disabled;
 
         // maybe Timer 0 does not signal overflow if IRQs are off, and this is needed to emulate the behavior of Timer 0 overflowing
 }
@@ -311,7 +312,7 @@ void main() {
     // Stopwatch
     uint32_t loop_count = 0;
     while (1) {
-        watch_loop_do(loop_count);
+        watch_loop_do();
         ++loop_count;
     }
 }
@@ -325,18 +326,75 @@ struct walltime {
 #define WALLTIME_MS_PER_SECOND 1000
 // SDCC does not support aggrgate return types :(
 void to_walltime(uint32_t ms, struct walltime *out_t) {
-    // FIXME: this would be the perfect application for divrem/divmod
+    // FIXME: this would be the perfect application for divrem/div mod
     out_t->hours = ms / WALLTIME_MS_PER_HOUR;
     out_t->minutes = (ms % WALLTIME_MS_PER_HOUR) / WALLTIME_MS_PER_MINUTE;
     out_t->seconds = ((ms % WALLTIME_MS_PER_HOUR) % WALLTIME_MS_PER_MINUTE) / WALLTIME_MS_PER_SECOND;
+}
+uint32_t next_minute(uint32_t now_ms) {
+    uint32_t tmp_ms = now_ms + WALLTIME_MS_PER_MINUTE;
+    tmp_ms =  tmp_ms - (tmp_ms % WALLTIME_MS_PER_MINUTE);
+    return tmp_ms;
 }
 #undef WALLTIME_MS_PER_HOUR
 #undef WALLTIME_MS_PER_MINUTE
 #undef WALLTIME_MS_PER_SECOND
 
-// WIP, might not be precise yet..
-void sleep_precise(uint32_t duration_ms) {
-    timed_sleep1_irqsave(duration_ms);
+#define RADIO_SLEEP_FAST_MAX_MS 0x8000UL // 2^15 ms
+#define RADIO_SLEEP_COUNTER_MASK 0xfffff // counter is 20bit
+
+
+// FIXME: WIP placeholder implementation, might not be precise yet..
+// Precision challenges: fast tick overflows after ~32s
+//  Solution (precise) a): sleep for less then 32s, maybe 2*30s?
+//  Solution (precise?) b): always sleep for whole seconds
+//  Solution (precise) c): return amount of time actually slept (and round down!)
+uint32_t sleep_precise(uint32_t duration_ms) {
+    __bit irqEn = IEN_EA; // save previous IRQ state
+    uint8_t prescaler;
+    uint32_t slept_ms;
+    IEN_EA = 0; // IRQs off
+
+    // essentially: powerDown(INIT_RADIO);
+    RADIO_IRQ4_pending = 0;
+    UNK_C1 &=~ 0x81;
+    TCON &=~ 0x20; //???? clear T0 overflow bit, necessary? do we care?
+    RADIO_command = RADIO_CMD_UNK_2;
+    RADIO_command = RADIO_CMD_UNK_3;
+
+    // Note: actual count is only 20 bits!, NOTE2: dmitry.gr claims its a 24bit counter
+    uint32_t count;
+    if (duration_ms <= RADIO_SLEEP_FAST_MAX_MS) {
+        // FAST: 2^-5 ms tick
+        prescaler = 0x56;  // 0x56 = one tick is 1/32k of sec
+        count = duration_ms << 5; // tick is 2^-5 ms
+        slept_ms = duration_ms;
+    } else {
+        // SLOW: 1s tick, maybe actually 2^10ms tick?
+        prescaler = 0x16; //0x16 = one tick is 1 second
+        count = duration_ms / 1000;  // truncates to whole second
+        count &= RADIO_SLEEP_COUNTER_MASK; // mask away any "overflow"
+        slept_ms = count * 1000;
+    }
+    RADIO_SleepTimerLo = count;
+    RADIO_SleepTimerMid = count >> 8;
+    RADIO_SleepTimerHi = ((uint8_t)(count >> 16));
+
+
+	__asm__("nop");
+	RADIO_SleepTimerSettings = prescaler;
+	__asm__("nop\nnop\nnop\nnop\n");
+	RADIO_SleepTimerSettings |= 0x80; // starts the timer?
+	__asm__("nop\nnop\n");
+	RADIO_RadioPowerCtl = 0x44; // sends SOC, or Radio? to sleep
+	__asm__("nop\nnop\n");
+
+
+        // this is the reverse of the clearing of these flags above, identical to the powerDown(INIT_RADIO)?
+        // but it is not equivalent to powerUp(INIT_RADIO)
+	//UNK_C1 |= 0x81;
+    IEN_EA = irqEn;
+    return slept_ms;
 }
 
 // Assumptions:
@@ -347,23 +405,27 @@ void sleep_precise(uint32_t duration_ms) {
 //  two independent counts: sleep interval counts, wake time counts
 //  calculate current elapsed time by adding both counts
 // Next step: fixed sleep interval won't do, as the clock will start to tick over in the middle of a minute
-void watch_loop_do(uint32_t loop_count) {
-    const uint32_t interval_ms = 60e3;
-    //static uint32_t loop_count = 0; // for some reason using this static variable we only get a single increment, but no more!
+// FIXME(compiler bug?): loop_count is passed in instead of being a static local variable, because otherwise we seem to only get a single increment, an then the count is stuck at 1!
+// NOTE: cc2430 has a radio sleep _and_ a separate MAC timer which work together, maybe we have a MAC timer as well?
+static uint32_t ms_slept = 0;
+void watch_loop_do() {
     wdt120s();
 
     // overflows after ~11years
-    uint32_t time_ms;
+    uint32_t now_ms;
     uint32_t timer_counts = timerGet();
-    // ticks per ms: 
-    time_ms = interval_ms * loop_count + timer_counts / TIMER_TICKS_PER_MS /* imprecise...*/;
+    // ticks per ms:
+    now_ms = ms_slept + timer_counts / TIMER_TICKS_PER_MS /* imprecise...*/;
+    uint32_t deadline_ms = next_minute(now_ms);
+    uint32_t sleep_for_ms = deadline_ms - now_ms; // does not account for printing delay, maybe should  get neew "now" timestamp after printing
+    ms_slept += sleep_for_ms;
+
     struct walltime t;
-    to_walltime(time_ms, &t);
+    to_walltime(now_ms, &t);
     powerUp(INIT_EPD);
     showClockDigital(t.hours, t.minutes, t.seconds);
     powerDown(INIT_EPD);
-    sleep_precise(interval_ms); /* might need to optimize going too sleep just after the timer overflows, since interrupts are disabled we might miss an overflow if we disable interrupts just before we would have overflown. */
-    //++loop_count;
+    ms_slept += sleep_precise(sleep_for_ms); /* might need to optimize going too sleep just after the timer overflows, since interrupts are disabled we might miss an overflow if we disable interrupts just before we would have overflown. */
 }
 
-// QS: can we sleep without disabling (all) interrupts?, would the interrupts wake us? (this would imply that the counter keeps running during sleep)
+// Qs: can we sleep without disabling (all) interrupts?, would the interrupts wake us? (this would imply that the counter keeps running during sleep)
