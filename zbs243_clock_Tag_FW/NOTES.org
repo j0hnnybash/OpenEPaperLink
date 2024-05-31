@@ -1,0 +1,34 @@
+* The intel(R) 8051 ISA (not reverse engineered)
+ - DATA RAM:
+   - 128B on chip: addresses 00H-7fH
+     - SFRs mapped into RAM at 80H-ffH
+   - Stack is 128B deep (ISA allows upto 256B), SP on reset is 07H
+     - stack cannot be relocated to external RAM!
+   - upto 64k RAM total
+* Plan:
+ - use T0 timer with an interrupt to correctly count overflows
+   - do this to keep time while epaper is updating
+
+* Issues
+** timed sleep  with GPIO blink causes reboot (sometimes?)
+*** Experiments
+ - bad:
+   - PDIR=IN; P=1; sleep(crash here?); P=0; sleep; P=1;...
+   - PDIR=IN; P=1; delay; P=0; sleep; P=1; sleep; crash?, P=0; crash? sleep; PDIR=OUT
+   - PDIR=IN; P=1; delay; P=0; sleep; P=1; sleep; crash; sleep; PDIR=OUT
+   - PDIR=IN; P=1; delay; P=0; sleep; crash?, P=0; sleep; crash?, P=0; sleep; PDIR=OUT
+ - good:
+   - PDIR=IN; P=1; delay; P=0; sleep; P=1; delay; P=0; PDIR=OUT; sleep
+   - PDIR=IN; P=1; delay; P=0; sleep; P=1; delay; P=0; sleep; PDIR=OUT
+ - irqsoff
+   - P=1; sleep; P=0; sleep; crash, P=1, +crash?+ ....
+   - sleep; sleep; crash/reboot
+*** Notes
+ - Conclusion: when invoking timed_sleep a second time (within GPIO
+   context??) a "crash" will occur on wakeup from the second timed_sleep
+   - maybe it is not a crash, but instead the wakeup just looses the
+     instruction pointer and "reboots" (start from IP=0)
+ - TODO: find exact place of "crash"
+   - blink before reenabling interrupts
+   - apparently reentering sleep to quickly leads to this issue
+     - the original code contains a comment about "time running backwards"
